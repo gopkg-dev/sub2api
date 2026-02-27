@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	mathrand "math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"sort"
@@ -51,6 +52,21 @@ const (
 	defaultUserGroupRateCacheTTL = 30 * time.Second
 	defaultModelsListCacheTTL    = 15 * time.Second
 )
+
+func buildAnthropicTargetURL(validatedURL, endpoint string) string {
+	targetURL := validatedURL + endpoint
+	parsedURL, err := url.Parse(targetURL)
+	if err != nil {
+		if strings.Contains(targetURL, "?") {
+			return targetURL + "&beta=true"
+		}
+		return targetURL + "?beta=true"
+	}
+	query := parsedURL.Query()
+	query.Set("beta", "true")
+	parsedURL.RawQuery = query.Encode()
+	return parsedURL.String()
+}
 
 const (
 	claudeMimicDebugInfoKey = "claude_mimic_debug_info"
@@ -3963,7 +3979,7 @@ func (s *GatewayService) buildUpstreamRequestAnthropicAPIKeyPassthrough(
 		if err != nil {
 			return nil, err
 		}
-		targetURL = validatedURL + "/v1/messages"
+		targetURL = buildAnthropicTargetURL(validatedURL, "/v1/messages")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, bytes.NewReader(body))
@@ -4343,7 +4359,7 @@ func (s *GatewayService) buildUpstreamRequest(ctx context.Context, c *gin.Contex
 			if err != nil {
 				return nil, err
 			}
-			targetURL = validatedURL + "/v1/messages"
+			targetURL = buildAnthropicTargetURL(validatedURL, "/v1/messages")
 		}
 	}
 
@@ -6291,7 +6307,7 @@ func (s *GatewayService) buildCountTokensRequestAnthropicAPIKeyPassthrough(
 		if err != nil {
 			return nil, err
 		}
-		targetURL = validatedURL + "/v1/messages/count_tokens"
+		targetURL = buildAnthropicTargetURL(validatedURL, "/v1/messages/count_tokens")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, bytes.NewReader(body))
@@ -6338,7 +6354,7 @@ func (s *GatewayService) buildCountTokensRequest(ctx context.Context, c *gin.Con
 			if err != nil {
 				return nil, err
 			}
-			targetURL = validatedURL + "/v1/messages/count_tokens"
+			targetURL = buildAnthropicTargetURL(validatedURL, "/v1/messages/count_tokens")
 		}
 	}
 
